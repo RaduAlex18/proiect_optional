@@ -17,23 +17,17 @@ namespace proiect_op_2_v3_final.Repositories.GenericRepository
         void Update(TEntity entity);
         void UpdateRange(IEnumerable<TEntity> entities);
 
-
-        /*
         //Delete
         void Delete(TEntity entity);
         void DeleteRange(IEnumerable<TEntity> entities);
-        */
 
-        /*
         //Find
         TEntity FindById(Guid id);
         Task<TEntity> FindByIdAsync(Guid id);
-        */
 
-        /*
         //Save
         bool Save();
         Task<bool> SaveAsync();
-        */
+
     }
 }

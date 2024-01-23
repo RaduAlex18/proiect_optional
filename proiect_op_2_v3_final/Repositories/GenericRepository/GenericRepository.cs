@@ -61,7 +61,34 @@ namespace proiect_op_2_v3_final.Repositories.GenericRepository
         //Delete
         public void Delete(TEntity entity)
         {
-
+            _table.Remove(entity);
         }
+
+        public void DeleteRange(IEnumerable<TEntity> entities)
+        {
+            _table.RemoveRange(entities);
+        }
+
+        // Find
+        public TEntity FindById(Guid id)
+        {
+            return _table.Find(id);
+        }
+
+        public async Task<TEntity> FindByIdAsync(Guid id)
+        {
+            return await _table.FindAsync(id);
+        }
+
+        // Save
+        public bool Save()
+        {
+            return _tableContext.SaveChanges() > 0;
+        }
+        public async Task<bool> SaveAsync()
+        {
+            return await _tableContext.SaveChangesAsync() > 0;
+        }
+
     }
 }
