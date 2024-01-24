@@ -9,9 +9,9 @@ namespace proiect_op_2_v3_final.Repositories.GenericRepository
         protected readonly tableContext _tableContext;
         protected readonly DbSet<TEntity> _table;
 
-        public GenericRepository(tableContext tablecontext)
+        public GenericRepository(tableContext tableContext)
         {
-            _tableContext = tablecontext;
+            _tableContext = tableContext;
             _table = _tableContext.Set<TEntity>();
         }
 
