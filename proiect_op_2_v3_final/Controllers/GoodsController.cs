@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using proiect_op_2_v3_final.Data;
 using proiect_op_2_v3_final.Models;
-using proiect_op_2_v3_final.Models.Base;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace proiect_op_2_v3_final.Controllers
 {
@@ -11,110 +14,97 @@ namespace proiect_op_2_v3_final.Controllers
     [ApiController]
     public class GoodsController : ControllerBase
     {
-        public static List<Goods> goodsList = new List<Goods>
+        private readonly tableContext _dbContext;
+
+        public GoodsController(tableContext dbContext)
         {
-            new Goods { Id = Guid.NewGuid(), Name = "Diesel", Quantity = 10, Price = 1200 },
-            new Goods { Id = Guid.NewGuid(), Name = "Petrol", Quantity = 20, Price = 800 },
-            new Goods { Id = Guid.NewGuid(), Name = "Tablet", Quantity = 15, Price = 500 },
-            new Goods { Id = Guid.NewGuid(), Name = "Camera", Quantity = 5, Price = 1000 },
-            new Goods { Id = Guid.NewGuid(), Name = "Printer", Quantity = 8, Price = 300 },
-        };
+            _dbContext = dbContext;
+        }
 
         // GET endpoint
         [HttpGet]
-        public List<Goods> Get()
+        public async Task<IActionResult> Get()
         {
-            return goodsList;
+            var goodsList = await _dbContext.Goodss.ToListAsync();
+            return Ok(goodsList);
         }
 
-        [HttpGet("byId")]
-        public Goods Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
         {
-            return goodsList.FirstOrDefault(g => g.Id.Equals(id));
-        }
+            var goods = await _dbContext.Goodss.FirstOrDefaultAsync(g => g.Id == id);
 
-        [HttpGet("byId/{id}")]
-        public Goods GetByIdInEndpoint(int id)
-        {
-            return goodsList.FirstOrDefault(g => g.Id.Equals(id));
+            if (goods == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(goods);
         }
 
         [HttpGet("filter/{name}/{price}")]
-        public Goods GetWithFilters(string name, int price)
+        public async Task<IActionResult> GetWithFilters(string name, int price)
         {
-            return goodsList.FirstOrDefault(g => g.Name.Equals(name) && g.Price.Equals(price));
-        }
+            var goods = await _dbContext.Goodss
+                .FirstOrDefaultAsync(g => g.Name.Equals(name) && g.Price == price);
 
-        [HttpGet("fromRouteWithId/{id}")]
-        public Goods GetByIdWithFromRoute([FromRoute] int id)
-        {
-            return goodsList.FirstOrDefault(g => g.Id.Equals(id));
-        }
+            if (goods == null)
+            {
+                return NotFound();
+            }
 
-        [HttpGet("fromHeader")]
-        public Goods GetByIdWithFromHeader([FromHeader] int id)
-        {
-            return goodsList.FirstOrDefault(g => g.Id.Equals(id));
-        }
-
-        [HttpGet("fromQuery")]
-        public Goods GetByIdWithFromQuery([FromQuery] int id)
-        {
-            return goodsList.FirstOrDefault(g => g.Id.Equals(id));
-        }
-
-        [HttpGet("fromQueryAsync")]
-        public IActionResult GetByIdWithFromQueryAsync([FromQuery] int id)
-        {
-            return Ok(goodsList.FirstOrDefault(g => g.Id.Equals(id)));
+            return Ok(goods);
         }
 
         // CREATE endpoint
         [HttpPost]
-        public List<Goods> Add(Goods goods)
+        public async Task<IActionResult> Add(Goods goods)
         {
-            goodsList.Add(goods);
-            return goodsList;
-        }
-
-        [HttpPost("fromBody")]
-        public IActionResult AddWithFromBody([FromBody] Goods goods)
-        {
-            goodsList.Add(goods);
-            return Ok(goodsList);
-        }
-
-        [HttpPost("fromForm")]
-        public IActionResult AddWithFromForm([FromForm] Goods goods)
-        {
-            goodsList.Add(goods);
-            return Ok(goodsList);
+            _dbContext.Goodss.Add(goods);
+            await _dbContext.SaveChangesAsync();
+            return Ok(goods);
         }
 
         // DELETE endpoint
-        [HttpDelete]
-        public List<Goods> Delete(Goods goods)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
-            var goodsIndex = goodsList.FindIndex(g => g.Id == goods.Id);
-            goodsList.RemoveAt(goodsIndex);
-            return goodsList;
+            var goods = await _dbContext.Goodss.FirstOrDefaultAsync(g => g.Id == id);
+
+            if (goods == null)
+            {
+                return NotFound();
+            }
+
+            _dbContext.Goodss.Remove(goods);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(goods);
         }
 
         // UPDATE endpoint (Partial Update)
         [HttpPatch("{id}")]
-        public IActionResult Patch([FromRoute] int id, [FromBody] JsonPatchDocument<Goods> goods)
+        public async Task<IActionResult> Patch(Guid id, [FromBody] JsonPatchDocument<Goods> goodsPatch)
         {
-            if (goods != null)
+            if (goodsPatch != null)
             {
-                var goodsToUpdate = goodsList.FirstOrDefault(g => g.Id.Equals(id));
-                goods.ApplyTo(goodsToUpdate, ModelState);
+                var goodsToUpdate = await _dbContext.Goodss.FirstOrDefaultAsync(g => g.Id == id);
+
+                if (goodsToUpdate == null)
+                {
+                    return NotFound();
+                }
+
+                goodsPatch.ApplyTo(goodsToUpdate, ModelState);
 
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest();
+                    return BadRequest(ModelState);
                 }
 
-                return Ok(goodsList);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(goodsToUpdate);
             }
             else
             {

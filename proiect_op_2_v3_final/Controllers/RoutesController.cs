@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using proiect_op_2_v3_final.Data;
 using proiect_op_2_v3_final.Models;
-using proiect_op_2_v3_final.Models.Base;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace proiect_op_2_v3_final.Controllers
 {
@@ -11,110 +14,97 @@ namespace proiect_op_2_v3_final.Controllers
     [ApiController]
     public class RoutesController : ControllerBase
     {
-        public static List<Routes> routesList = new List<Routes>
+        private readonly tableContext _dbContext;
+
+        public RoutesController(tableContext dbContext)
         {
-            new Routes { Id = Guid.NewGuid(), km = 200, city_start = "City A", city_end = "City B" },
-            new Routes { Id = Guid.NewGuid(), km = 150, city_start = "City C", city_end = "City D" },
-            new Routes { Id = Guid.NewGuid(), km = 300, city_start = "City E", city_end = "City F" },
-            new Routes { Id = Guid.NewGuid(), km = 120, city_start = "City G", city_end = "City H" },
-            new Routes { Id = Guid.NewGuid(), km = 250, city_start = "City I", city_end = "City J" },
-        };
+            _dbContext = dbContext;
+        }
 
         // GET endpoint
         [HttpGet]
-        public List<Routes> Get()
+        public async Task<IActionResult> Get()
         {
-            return routesList;
+            var routesList = await _dbContext.Routess.ToListAsync();
+            return Ok(routesList);
         }
 
-        [HttpGet("byId")]
-        public Routes Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
         {
-            return routesList.FirstOrDefault(r => r.Id.Equals(id));
-        }
+            var route = await _dbContext.Routess.FirstOrDefaultAsync(r => r.Id == id);
 
-        [HttpGet("byId/{id}")]
-        public Routes GetByIdInEndpoint(int id)
-        {
-            return routesList.FirstOrDefault(r => r.Id.Equals(id));
+            if (route == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(route);
         }
 
         [HttpGet("filter/{start}/{end}")]
-        public Routes GetWithFilters(string start, string end)
+        public async Task<IActionResult> GetWithFilters(string start, string end)
         {
-            return routesList.FirstOrDefault(r => r.city_start.Equals(start) && r.city_end.Equals(end));
-        }
+            var route = await _dbContext.Routess
+                .FirstOrDefaultAsync(r => r.city_start.Equals(start) && r.city_end.Equals(end));
 
-        [HttpGet("fromRouteWithId/{id}")]
-        public Routes GetByIdWithFromRoute([FromRoute] int id)
-        {
-            return routesList.FirstOrDefault(r => r.Id.Equals(id));
-        }
+            if (route == null)
+            {
+                return NotFound();
+            }
 
-        [HttpGet("fromHeader")]
-        public Routes GetByIdWithFromHeader([FromHeader] int id)
-        {
-            return routesList.FirstOrDefault(r => r.Id.Equals(id));
-        }
-
-        [HttpGet("fromQuery")]
-        public Routes GetByIdWithFromQuery([FromQuery] int id)
-        {
-            return routesList.FirstOrDefault(r => r.Id.Equals(id));
-        }
-
-        [HttpGet("fromQueryAsync")]
-        public IActionResult GetByIdWithFromQueryAsync([FromQuery] int id)
-        {
-            return Ok(routesList.FirstOrDefault(r => r.Id.Equals(id)));
+            return Ok(route);
         }
 
         // CREATE endpoint
         [HttpPost]
-        public List<Routes> Add(Routes route)
+        public async Task<IActionResult> Add(Routes route)
         {
-            routesList.Add(route);
-            return routesList;
-        }
-
-        [HttpPost("fromBody")]
-        public IActionResult AddWithFromBody([FromBody] Routes route)
-        {
-            routesList.Add(route);
-            return Ok(routesList);
-        }
-
-        [HttpPost("fromForm")]
-        public IActionResult AddWithFromForm([FromForm] Routes route)
-        {
-            routesList.Add(route);
-            return Ok(routesList);
+            _dbContext.Routess.Add(route);
+            await _dbContext.SaveChangesAsync();
+            return Ok(route);
         }
 
         // DELETE endpoint
-        [HttpDelete]
-        public List<Routes> Delete(Routes route)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
-            var routeIndex = routesList.FindIndex(r => r.Id == route.Id);
-            routesList.RemoveAt(routeIndex);
-            return routesList;
+            var route = await _dbContext.Routess.FirstOrDefaultAsync(r => r.Id == id);
+
+            if (route == null)
+            {
+                return NotFound();
+            }
+
+            _dbContext.Routess.Remove(route);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(route);
         }
 
         // UPDATE endpoint (Partial Update)
         [HttpPatch("{id}")]
-        public IActionResult Patch([FromRoute] int id, [FromBody] JsonPatchDocument<Routes> route)
+        public async Task<IActionResult> Patch(Guid id, [FromBody] JsonPatchDocument<Routes> routePatch)
         {
-            if (route != null)
+            if (routePatch != null)
             {
-                var routeToUpdate = routesList.FirstOrDefault(r => r.Id.Equals(id));
-                route.ApplyTo(routeToUpdate, ModelState);
+                var routeToUpdate = await _dbContext.Routess.FirstOrDefaultAsync(r => r.Id == id);
+
+                if (routeToUpdate == null)
+                {
+                    return NotFound();
+                }
+
+                routePatch.ApplyTo(routeToUpdate, ModelState);
 
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest();
+                    return BadRequest(ModelState);
                 }
 
-                return Ok(routesList);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(routeToUpdate);
             }
             else
             {

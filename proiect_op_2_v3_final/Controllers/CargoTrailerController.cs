@@ -1,120 +1,109 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using proiect_op_2_v3_final.Data;
 using proiect_op_2_v3_final.Models;
-using proiect_op_2_v3_final.Models.Base;
-using System.Collections.Generic;
+using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace proiect_op_2_v3_final.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CargoTrailersController : ControllerBase
+    public class CargoTrailerController : ControllerBase
     {
-        public static List<CargoTrailer> cargoTrailersList = new List<CargoTrailer>
+        private readonly tableContext _dbContext;
+
+        public CargoTrailerController(tableContext dbContext)
         {
-            new CargoTrailer { Id = Guid.NewGuid(), Brand = "Schmitz", Type = "Box Trailer", Year = 2020, Color = "Blue" },
-            new CargoTrailer { Id = Guid.NewGuid(), Brand = "Krone", Type = "Flatbed Trailer", Year = 2019, Color = "Red" },
-            new CargoTrailer { Id = Guid.NewGuid(), Brand = "Thermo King", Type = "Refrigerated Trailer", Year = 2021, Color = "White" },
-            new CargoTrailer { Id = Guid.NewGuid(), Brand = "Magyar", Type = "Tanker Trailer", Year = 2018, Color = "Green" },
-            new CargoTrailer { Id = Guid.NewGuid(), Brand = "Kögel", Type = "Drop Deck Trailer", Year = 2022, Color = "Yellow" },
-        };
+            _dbContext = dbContext;
+        }
 
         // GET endpoint
         [HttpGet]
-        public List<CargoTrailer> Get()
+        public async Task<IActionResult> Get()
         {
-            return cargoTrailersList;
+            var cargoTrailers = await _dbContext.CargoTrailers.ToListAsync();
+            return Ok(cargoTrailers);
         }
 
-        [HttpGet("byId")]
-        public CargoTrailer Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
         {
-            return cargoTrailersList.FirstOrDefault(ct => ct.Id.Equals(id));
-        }
+            var cargoTrailer = await _dbContext.CargoTrailers.FirstOrDefaultAsync(ct => ct.Id == id);
 
-        [HttpGet("byId/{id}")]
-        public CargoTrailer GetByIdInEndpoint(int id)
-        {
-            return cargoTrailersList.FirstOrDefault(ct => ct.Id.Equals(id));
+            if (cargoTrailer == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(cargoTrailer);
         }
 
         [HttpGet("filter/{brand}/{year}")]
-        public CargoTrailer GetWithFilters(string brand, int year)
+        public async Task<IActionResult> GetWithFilters(string brand, int year)
         {
-            return cargoTrailersList.FirstOrDefault(ct => ct.Brand.Equals(brand) && ct.Year.Equals(year));
-        }
+            var cargoTrailer = await _dbContext.CargoTrailers
+                .FirstOrDefaultAsync(ct => ct.Brand.Equals(brand) && ct.Year == year);
 
-        [HttpGet("fromRouteWithId/{id}")]
-        public CargoTrailer GetByIdWithFromRoute([FromRoute] int id)
-        {
-            return cargoTrailersList.FirstOrDefault(ct => ct.Id.Equals(id));
-        }
+            if (cargoTrailer == null)
+            {
+                return NotFound();
+            }
 
-        [HttpGet("fromHeader")]
-        public CargoTrailer GetByIdWithFromHeader([FromHeader] int id)
-        {
-            return cargoTrailersList.FirstOrDefault(ct => ct.Id.Equals(id));
-        }
-
-        [HttpGet("fromQuery")]
-        public CargoTrailer GetByIdWithFromQuery([FromQuery] int id)
-        {
-            return cargoTrailersList.FirstOrDefault(ct => ct.Id.Equals(id));
-        }
-
-        [HttpGet("fromQueryAsync")]
-        public IActionResult GetByIdWithFromQueryAsync([FromQuery] int id)
-        {
-            return Ok(cargoTrailersList.FirstOrDefault(ct => ct.Id.Equals(id)));
+            return Ok(cargoTrailer);
         }
 
         // CREATE endpoint
         [HttpPost]
-        public List<CargoTrailer> Add(CargoTrailer cargoTrailer)
+        public async Task<IActionResult> Add(CargoTrailer cargoTrailer)
         {
-            cargoTrailersList.Add(cargoTrailer);
-            return cargoTrailersList;
-        }
-
-        [HttpPost("fromBody")]
-        public IActionResult AddWithFromBody([FromBody] CargoTrailer cargoTrailer)
-        {
-            cargoTrailersList.Add(cargoTrailer);
-            return Ok(cargoTrailersList);
-        }
-
-        [HttpPost("fromForm")]
-        public IActionResult AddWithFromForm([FromForm] CargoTrailer cargoTrailer)
-        {
-            cargoTrailersList.Add(cargoTrailer);
-            return Ok(cargoTrailersList);
+            _dbContext.CargoTrailers.Add(cargoTrailer);
+            await _dbContext.SaveChangesAsync();
+            return Ok(cargoTrailer);
         }
 
         // DELETE endpoint
-        [HttpDelete]
-        public List<CargoTrailer> Delete(CargoTrailer cargoTrailer)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
-            var cargoTrailerIndex = cargoTrailersList.FindIndex(ct => ct.Id == cargoTrailer.Id);
-            cargoTrailersList.RemoveAt(cargoTrailerIndex);
-            return cargoTrailersList;
+            var cargoTrailer = await _dbContext.CargoTrailers.FirstOrDefaultAsync(ct => ct.Id == id);
+
+            if (cargoTrailer == null)
+            {
+                return NotFound();
+            }
+
+            _dbContext.CargoTrailers.Remove(cargoTrailer);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(cargoTrailer);
         }
 
-        // UPDATE endpoint (Partial Update)
+        // UPDATE endpoint
         [HttpPatch("{id}")]
-        public IActionResult Patch([FromRoute] int id, [FromBody] JsonPatchDocument<CargoTrailer> cargoTrailer)
+        public async Task<IActionResult> Patch(Guid id, [FromBody] JsonPatchDocument<CargoTrailer> cargoTrailerPatch)
         {
-            if (cargoTrailer != null)
+            if (cargoTrailerPatch != null)
             {
-                var cargoTrailerToUpdate = cargoTrailersList.FirstOrDefault(ct => ct.Id.Equals(id));
-                cargoTrailer.ApplyTo(cargoTrailerToUpdate, ModelState);
+                var cargoTrailerToUpdate = await _dbContext.CargoTrailers.FirstOrDefaultAsync(ct => ct.Id == id);
+
+                if (cargoTrailerToUpdate == null)
+                {
+                    return NotFound();
+                }
+
+                cargoTrailerPatch.ApplyTo(cargoTrailerToUpdate, ModelState);
 
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest();
+                    return BadRequest(ModelState);
                 }
 
-                return Ok(cargoTrailersList);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(cargoTrailerToUpdate);
             }
             else
             {

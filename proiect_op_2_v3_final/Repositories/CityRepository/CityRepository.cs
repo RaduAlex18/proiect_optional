@@ -26,13 +26,12 @@ namespace proiect_op_2_v3_final.Repositories.CityRepository
 
             return citiesOrderedByZipCode.ToList();
         }
-
+        /*
         public List<City> GetAllWithInclude()
         {
-            //var result = _table.Include(d => d.Drivers).ThenInclude(c => c.City).ToList();
             return _table.Include(d => d.Drivers).ToList();
         }
-
+        */
         public List<dynamic> GetAllWithJoin()
         {
             var result = _tableContext.Cities.Join(_tableContext.Drivers, city => city.Id, driver => driver.CityId,

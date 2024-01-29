@@ -7,7 +7,8 @@ namespace proiect_op_2_v3_final.Repositories.GoodsRepository
     {
         List<Goods> OrderByPrice(int price);
         List<Goods> OrderByQuantity(int quantity);
-        List<Goods> GetAllWithInclude();
+
+        //List<Goods> GetAllWithInclude();
         List<dynamic> GetAllWithJoin();
         Goods Where(int price);
         void GroupBy();

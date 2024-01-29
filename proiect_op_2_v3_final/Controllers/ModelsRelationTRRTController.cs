@@ -1,92 +1,92 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using proiect_op_2_v3_final.Data;
 using proiect_op_2_v3_final.Models;
-using proiect_op_2_v3_final.Models.Base;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace proiect_op_2_v3_final.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class TruckRoutesController : ControllerBase
+    public class ModelsRelationTRRTController : ControllerBase
     {
-        public static List<Truck> trucks = new List<Truck>
-        {
-            new Truck { Id = Guid.NewGuid(), Brand_T = "Volvo", Year = 2020, Color = "Blue" },
-            new Truck { Id = Guid.NewGuid(), Brand_T = "Scania", Year = 2019, Color = "Red" },
-            new Truck { Id = Guid.NewGuid(), Brand_T = "Mercedes", Year = 2021, Color = "White" },
-        };
+        private readonly tableContext _dbContext;
 
-        public static List<Routes> routesList = new List<Routes>
+        public ModelsRelationTRRTController(tableContext dbContext)
         {
-            new Routes { Id = Guid.NewGuid(), km = 200, city_start = "City A", city_end = "City B" },
-            new Routes { Id = Guid.NewGuid(), km = 150, city_start = "City C", city_end = "City D" },
-            new Routes { Id = Guid.NewGuid(), km = 300, city_start = "City E", city_end = "City F" },
-        };
-
-        public static List<ModelsRelationTRRT> truckRoutesRelations = new List<ModelsRelationTRRT>
-        {
-            new ModelsRelationTRRT { TruckId = trucks[0].Id, RoutesId = routesList[0].Id },
-            new ModelsRelationTRRT { TruckId = trucks[1].Id, RoutesId = routesList[1].Id },
-            new ModelsRelationTRRT { TruckId = trucks[2].Id, RoutesId = routesList[2].Id },
-        };
+            _dbContext = dbContext;
+        }
 
         // GET endpoint
         [HttpGet]
-        public List<ModelsRelationTRRT> Get()
+        public async Task<IActionResult> Get()
         {
-            return truckRoutesRelations.ToList();
+            var truckRoutesRelations = await _dbContext.ModelsRelationsTRRT.ToListAsync();
+            return Ok(truckRoutesRelations);
         }
 
         // GET endpoint
         [HttpGet("byTruckId/{truckId}")]
-        public ModelsRelationTRRT GetByTruckId(Guid truckId)
+        public async Task<IActionResult> GetByTruckId(Guid truckId)
         {
-            return truckRoutesRelations.FirstOrDefault(trrt => trrt.TruckId.Equals(truckId));
+            var relation = await _dbContext.ModelsRelationsTRRT.FirstOrDefaultAsync(trrt => trrt.TruckId.Equals(truckId));
+
+            if (relation == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(relation);
         }
 
         // Create endpoint
         [HttpPost]
-        public List<ModelsRelationTRRT> Add(ModelsRelationTRRT truckRoutesRelation)
+        public async Task<IActionResult> Add(ModelsRelationTRRT truckRoutesRelation)
         {
-            truckRoutesRelations.Add(truckRoutesRelation);
-            return truckRoutesRelations;
+            _dbContext.ModelsRelationsTRRT.Add(truckRoutesRelation);
+            await _dbContext.SaveChangesAsync();
+            return Ok(truckRoutesRelation);
         }
 
         // DELETE endpoint 
         [HttpDelete("byTruckId/{truckId}")]
-        public List<ModelsRelationTRRT> DeleteByTruckId(Guid truckId)
+        public async Task<IActionResult> DeleteByTruckId(Guid truckId)
         {
-            var relationToRemove = truckRoutesRelations.FirstOrDefault(trrt => trrt.TruckId.Equals(truckId));
+            var relationToRemove = await _dbContext.ModelsRelationsTRRT.FirstOrDefaultAsync(trrt => trrt.TruckId.Equals(truckId));
 
             if (relationToRemove != null)
             {
-                truckRoutesRelations.Remove(relationToRemove);
+                _dbContext.ModelsRelationsTRRT.Remove(relationToRemove);
+                await _dbContext.SaveChangesAsync();
             }
 
-            return truckRoutesRelations;
+            return Ok(await _dbContext.ModelsRelationsTRRT.ToListAsync());
         }
 
         // UPDATE endpoint 
         [HttpPatch("byTruckId/{truckId}")]
-        public IActionResult PatchByTruckId(Guid truckId, [FromBody] JsonPatchDocument<ModelsRelationTRRT> truckRoutesRelation)
+        public async Task<IActionResult> PatchByTruckId(Guid truckId, [FromBody] JsonPatchDocument<ModelsRelationTRRT> truckRoutesRelationPatch)
         {
-            if (truckRoutesRelation != null)
+            if (truckRoutesRelationPatch != null)
             {
-                var relationToUpdate = truckRoutesRelations.FirstOrDefault(trrt => trrt.TruckId.Equals(truckId));
+                var relationToUpdate = await _dbContext.ModelsRelationsTRRT.FirstOrDefaultAsync(trrt => trrt.TruckId.Equals(truckId));
 
                 if (relationToUpdate != null)
                 {
-                    truckRoutesRelation.ApplyTo(relationToUpdate, ModelState);
+                    truckRoutesRelationPatch.ApplyTo(relationToUpdate, ModelState);
 
                     if (!ModelState.IsValid)
                     {
-                        return BadRequest();
+                        return BadRequest(ModelState);
                     }
 
-                    return Ok(truckRoutesRelations);
+                    await _dbContext.SaveChangesAsync();
+
+                    return Ok(relationToUpdate);
                 }
                 else
                 {

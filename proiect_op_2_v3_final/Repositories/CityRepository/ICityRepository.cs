@@ -7,7 +7,8 @@ namespace proiect_op_2_v3_final.Repositories.CityRepository
     {
         List<City> OrderByCountry(string name);
         List<City> OrderByZipCode(int zipCode);
-        List<City> GetAllWithInclude();
+
+        //List<City> GetAllWithInclude();
         List<dynamic> GetAllWithJoin();
         City Where(string name);
         void GroupBy();

@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using proiect_op_2_v3_final.Data;
 using proiect_op_2_v3_final.Models;
-using proiect_op_2_v3_final.Models.Base;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace proiect_op_2_v3_final.Controllers
 {
@@ -11,110 +14,97 @@ namespace proiect_op_2_v3_final.Controllers
     [ApiController]
     public class TruckController : ControllerBase
     {
-        public static List<Truck> trucks = new List<Truck>
+        private readonly tableContext _dbContext;
+
+        public TruckController(tableContext dbContext)
         {
-            new Truck { Id = Guid.NewGuid(), Brand_T = "Volvo", Year = 2020, Color = "Blue" },
-            new Truck { Id = Guid.NewGuid(), Brand_T = "Scania", Year = 2019, Color = "Red" },
-            new Truck { Id = Guid.NewGuid(), Brand_T = "Mercedes", Year = 2021, Color = "White" },
-            new Truck { Id = Guid.NewGuid(), Brand_T = "MAN", Year = 2018, Color = "Green" },
-            new Truck { Id = Guid.NewGuid(), Brand_T = "Iveco", Year = 2022, Color = "Yellow" },
-        };
+            _dbContext = dbContext;
+        }
 
         // GET endpoint
         [HttpGet]
-        public List<Truck> Get()
+        public async Task<IActionResult> Get()
         {
-            return trucks;
+            var trucks = await _dbContext.Trucks.ToListAsync();
+            return Ok(trucks);
         }
 
-        [HttpGet("byId")]
-        public Truck Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
         {
-            return trucks.FirstOrDefault(t => t.Id.Equals(id));
-        }
+            var truck = await _dbContext.Trucks.FirstOrDefaultAsync(t => t.Id == id);
 
-        [HttpGet("byId/{id}")]
-        public Truck GetByIdInEndpoint(int id)
-        {
-            return trucks.FirstOrDefault(t => t.Id.Equals(id));
+            if (truck == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(truck);
         }
 
         [HttpGet("filter/{brand}/{year}")]
-        public Truck GetWithFilters(string brand, int year)
+        public async Task<IActionResult> GetWithFilters(string brand, int year)
         {
-            return trucks.FirstOrDefault(t => t.Brand_T.Equals(brand) && t.Year.Equals(year));
-        }
+            var truck = await _dbContext.Trucks
+                .FirstOrDefaultAsync(t => t.Brand_T.Equals(brand) && t.Year == year);
 
-        [HttpGet("fromRouteWithId/{id}")]
-        public Truck GetByIdWithFromRoute([FromRoute] int id)
-        {
-            return trucks.FirstOrDefault(t => t.Id.Equals(id));
-        }
+            if (truck == null)
+            {
+                return NotFound();
+            }
 
-        [HttpGet("fromHeader")]
-        public Truck GetByIdWithFromHeader([FromHeader] int id)
-        {
-            return trucks.FirstOrDefault(t => t.Id.Equals(id));
-        }
-
-        [HttpGet("fromQuery")]
-        public Truck GetByIdWithFromQuery([FromQuery] int id)
-        {
-            return trucks.FirstOrDefault(t => t.Id.Equals(id));
-        }
-
-        [HttpGet("fromQueryAsync")]
-        public IActionResult GetByIdWithFromQueryAsync([FromQuery] int id)
-        {
-            return Ok(trucks.FirstOrDefault(t => t.Id.Equals(id)));
+            return Ok(truck);
         }
 
         // CREATE endpoint
         [HttpPost]
-        public List<Truck> Add(Truck truck)
+        public async Task<IActionResult> Add(Truck truck)
         {
-            trucks.Add(truck);
-            return trucks;
-        }
-
-        [HttpPost("fromBody")]
-        public IActionResult AddWithFromBody([FromBody] Truck truck)
-        {
-            trucks.Add(truck);
-            return Ok(trucks);
-        }
-
-        [HttpPost("fromForm")]
-        public IActionResult AddWithFromForm([FromForm] Truck truck)
-        {
-            trucks.Add(truck);
-            return Ok(trucks);
+            _dbContext.Trucks.Add(truck);
+            await _dbContext.SaveChangesAsync();
+            return Ok(truck);
         }
 
         // DELETE endpoint
-        [HttpDelete]
-        public List<Truck> Delete(Truck truck)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
-            var truckIndex = trucks.FindIndex(t => t.Id == truck.Id);
-            trucks.RemoveAt(truckIndex);
-            return trucks;
+            var truck = await _dbContext.Trucks.FirstOrDefaultAsync(t => t.Id == id);
+
+            if (truck == null)
+            {
+                return NotFound();
+            }
+
+            _dbContext.Trucks.Remove(truck);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(truck);
         }
 
-        // PATCH endpoint (Partial Update)
+        // PATCH endpoint
         [HttpPatch("{id}")]
-        public IActionResult Patch([FromRoute] int id, [FromBody] JsonPatchDocument<Truck> truck)
+        public async Task<IActionResult> Patch(Guid id, [FromBody] JsonPatchDocument<Truck> truckPatch)
         {
-            if (truck != null)
+            if (truckPatch != null)
             {
-                var truckToUpdate = trucks.FirstOrDefault(t => t.Id.Equals(id));
-                truck.ApplyTo(truckToUpdate, ModelState);
+                var truckToUpdate = await _dbContext.Trucks.FirstOrDefaultAsync(t => t.Id == id);
+
+                if (truckToUpdate == null)
+                {
+                    return NotFound();
+                }
+
+                truckPatch.ApplyTo(truckToUpdate, ModelState);
 
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest();
+                    return BadRequest(ModelState);
                 }
 
-                return Ok(trucks);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(truckToUpdate);
             }
             else
             {

@@ -26,15 +26,14 @@ namespace proiect_op_2_v3_final.Repositories.GoodsRepository
 
             return goodsOrderedAscq.ToList();
         }
-
+        /*
         public List<Goods> GetAllWithInclude()
         {
 
-            //var result = _table.Include(c => c.CargoTrailer).ThenInclude(g => g.Goods).ToList();
             return _table.Include(c => c.CargoTrailer).ToList();
 
         }
-        
+        */
         public List<dynamic> GetAllWithJoin()
         {
             var result = _tableContext.Goodss.Join(_tableContext.CargoTrailers, goods => goods.Id, cargotrailer => cargotrailer.GoodsId,

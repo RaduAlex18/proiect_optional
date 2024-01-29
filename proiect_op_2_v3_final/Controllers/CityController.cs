@@ -1,120 +1,110 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using proiect_op_2_v3_final.Data;
 using proiect_op_2_v3_final.Models;
-using proiect_op_2_v3_final.Models.Base;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace proiect_op_2_v3_final.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CitiesController : ControllerBase
+    public class CityController : ControllerBase
     {
-        public static List<City> cities = new List<City>
+        private readonly tableContext _dbContext;
+
+        public CityController(tableContext dbContext)
         {
-            new City { Id = Guid.NewGuid(), Country = "USA", Name = "New York", Zip_code = 10001 },
-            new City { Id = Guid.NewGuid(), Country = "UK", Name = "London", Zip_code = 32918 },
-            new City { Id = Guid.NewGuid(), Country = "France", Name = "Paris", Zip_code = 75000 },
-            new City { Id = Guid.NewGuid(), Country = "Germany", Name = "Berlin", Zip_code = 10115 },
-            new City { Id = Guid.NewGuid(), Country = "Japan", Name = "Tokyo", Zip_code = 100-0001 },
-        };
+            _dbContext = dbContext;
+        }
 
         // GET endpoint
         [HttpGet]
-        public List<City> Get()
+        public async Task<IActionResult> Get()
         {
-            return cities;
+            var cities = await _dbContext.Cities.ToListAsync();
+            return Ok(cities);
         }
 
-        [HttpGet("byId")]
-        public City Get(int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
         {
-            return cities.FirstOrDefault(c => c.Id.Equals(id));
-        }
+            var city = await _dbContext.Cities.FirstOrDefaultAsync(c => c.Id == id);
 
-        [HttpGet("byId/{id}")]
-        public City GetByIdInEndpoint(int id)
-        {
-            return cities.FirstOrDefault(c => c.Id.Equals(id));
+            if (city == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(city);
         }
 
         [HttpGet("filter/{country}/{zipCode}")]
-        public City GetWithFilters(string country, int zipCode)
+        public async Task<IActionResult> GetWithFilters(string country, int zipCode)
         {
-            return cities.FirstOrDefault(c => c.Country.Equals(country) && c.Zip_code.Equals(zipCode));
-        }
+            var city = await _dbContext.Cities
+                .FirstOrDefaultAsync(c => c.Country.Equals(country) && c.Zip_code == zipCode);
 
-        [HttpGet("fromRouteWithId/{id}")]
-        public City GetByIdWithFromRoute([FromRoute] int id)
-        {
-            return cities.FirstOrDefault(c => c.Id.Equals(id));
-        }
+            if (city == null)
+            {
+                return NotFound();
+            }
 
-        [HttpGet("fromHeader")]
-        public City GetByIdWithFromHeader([FromHeader] int id)
-        {
-            return cities.FirstOrDefault(c => c.Id.Equals(id));
-        }
-
-        [HttpGet("fromQuery")]
-        public City GetByIdWithFromQuery([FromQuery] int id)
-        {
-            return cities.FirstOrDefault(c => c.Id.Equals(id));
-        }
-
-        [HttpGet("fromQueryAsync")]
-        public IActionResult GetByIdWithFromQueryAsync([FromQuery] int id)
-        {
-            return Ok(cities.FirstOrDefault(c => c.Id.Equals(id)));
+            return Ok(city);
         }
 
         // CREATE endpoint
         [HttpPost]
-        public List<City> Add(City city)
+        public async Task<IActionResult> Add(City city)
         {
-            cities.Add(city);
-            return cities;
-        }
-
-        [HttpPost("fromBody")]
-        public IActionResult AddWithFromBody([FromBody] City city)
-        {
-            cities.Add(city);
-            return Ok(cities);
-        }
-
-        [HttpPost("fromForm")]
-        public IActionResult AddWithFromForm([FromForm] City city)
-        {
-            cities.Add(city);
-            return Ok(cities);
+            _dbContext.Cities.Add(city);
+            await _dbContext.SaveChangesAsync();
+            return Ok(city);
         }
 
         // DELETE endpoint
-        [HttpDelete]
-        public List<City> Delete(City city)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
-            var cityIndex = cities.FindIndex(c => c.Id == city.Id);
-            cities.RemoveAt(cityIndex);
-            return cities;
+            var city = await _dbContext.Cities.FirstOrDefaultAsync(c => c.Id == id);
+
+            if (city == null)
+            {
+                return NotFound();
+            }
+
+            _dbContext.Cities.Remove(city);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(city);
         }
 
-        // UPDATE endpoint (Partial Update)
+        // UPDATE endpoint
         [HttpPatch("{id}")]
-        public IActionResult Patch([FromRoute] int id, [FromBody] JsonPatchDocument<City> city)
+        public async Task<IActionResult> Patch(Guid id, [FromBody] JsonPatchDocument<City> cityPatch)
         {
-            if (city != null)
+            if (cityPatch != null)
             {
-                var cityToUpdate = cities.FirstOrDefault(c => c.Id.Equals(id));
-                city.ApplyTo(cityToUpdate, ModelState);
+                var cityToUpdate = await _dbContext.Cities.FirstOrDefaultAsync(c => c.Id == id);
+
+                if (cityToUpdate == null)
+                {
+                    return NotFound();
+                }
+
+                cityPatch.ApplyTo(cityToUpdate, ModelState);
 
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest();
+                    return BadRequest(ModelState);
                 }
 
-                return Ok(cities);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(cityToUpdate);
             }
             else
             {

@@ -20,13 +20,13 @@ namespace proiect_op_2_v3_final.Repositories.RoutesRepository
 
             return routesOrderedByKm.ToList();
         }
-
+        /*
         public List<Routes> GetAllWithInclude()
         {
             var result = _table.Include(tr => tr.ModelsRelationsTRRT).ThenInclude(tr => tr.Truck).ToList();
             return result;
         }
-
+        */
         public List<dynamic> GetAllWithJoin()
         {
             var result = _tableContext.Routess.Join(_tableContext.ModelsRelationsTRRT, routes => routes.Id, truck => truck.RoutesId,
