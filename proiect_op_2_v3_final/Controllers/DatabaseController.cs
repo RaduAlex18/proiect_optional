@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿/*
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using proiect_op_2_v3_final.Data;
 
@@ -23,3 +24,4 @@ namespace proiect_op_2_v3_final.Controllers
         }
     }
 }
+*/

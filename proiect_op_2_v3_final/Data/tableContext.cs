@@ -16,6 +16,8 @@ namespace proiect_op_2_v3_final.Data
         public DbSet<ModelsRelationTRCT> ModelsRelationsTRCT { get; set; }
         public DbSet<ModelsRelationTRRT> ModelsRelationsTRRT { get; set; }
 
+        public DbSet<User> Users { get; set; }
+
         public tableContext(DbContextOptions<tableContext> options) : base(options) { }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
