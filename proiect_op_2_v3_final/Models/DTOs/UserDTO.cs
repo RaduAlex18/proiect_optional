@@ -1,4 +1,5 @@
-﻿namespace proiect_op_2_v3_final.Models.DTOs
+﻿/*
+namespace proiect_op_2_v3_final.Models.DTOs
 {
     public class UserDTO
     {
@@ -12,3 +13,4 @@
         //public string Password { get; set; }
     }
 }
+*/

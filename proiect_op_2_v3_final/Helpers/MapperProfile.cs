@@ -8,10 +8,10 @@ namespace proiect_op_2_v3_final.Helpers
     {
         public MapperProfile()
         {
-            CreateMap<User, UserDTO>();
-            CreateMap<UserDTO, User>();
+            CreateMap<User, UserRegisterDTO>();
+            CreateMap<UserRegisterDTO, User>();
 
-            CreateMap<User, UserDTO>()
+            CreateMap<User, UserRegisterDTO>()
                 .ForMember(ud => ud.FirstName,
                 opts1 => opts1.MapFrom(u1 => u1.FirstName))
                 .ForMember(ud => ud.LastName,

@@ -1,7 +1,18 @@
+using Microsoft.EntityFrameworkCore;
+using proiect_op_2_v3_final.Helpers.Extensions;
+using proiect_op_2_v3_final.Helpers;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddRazorPages();
+//builder.Services.AddRazorPages();
+
+builder.Services.AddControllersWithViews();
+builder.Services.AddRepositories();
+builder.Services.AddServices();
+builder.Services.AddHelpers();
+builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+
 
 var app = builder.Build();
 
@@ -15,11 +26,17 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
+app.UseMiddleware<JwtMiddleware>();
 
-app.UseAuthorization();
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller}/{action=Index}/{id?}");
 
-app.MapRazorPages();
+app.MapFallbackToFile("index.html");
+
+//app.UseAuthorization();
+
+//app.MapRazorPages();
 
 app.Run();

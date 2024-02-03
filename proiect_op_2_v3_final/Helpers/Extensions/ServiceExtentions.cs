@@ -1,4 +1,5 @@
-﻿using proiect_op_2_v3_final.Helpers.Seeders;
+﻿using proiect_op_2_v3_final.Helpers.JwtUtil;
+using proiect_op_2_v3_final.Helpers.Seeders;
 using proiect_op_2_v3_final.Repositories.UserRepository;
 using proiect_op_2_v3_final.Services.UserService;
 
@@ -23,6 +24,13 @@ namespace proiect_op_2_v3_final.Helpers.Extensions
         public static IServiceCollection AddSeeders(this IServiceCollection services)
         {
             services.AddTransient<UsersSeeder>();
+
+            return services;
+        }
+
+        public static IServiceCollection AddHelpers(this IServiceCollection services)
+        {
+            services.AddTransient<IJwtUtils, JwtUtils>();
 
             return services;
         }
